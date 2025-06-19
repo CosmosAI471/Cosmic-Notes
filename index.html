@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Notes</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>📒 Smart Notes</h1>
+
+  <!-- Notes Display Area -->
+  <div id="notes-container">
+    <!-- Notes will appear here -->
+  </div>
+
+  <!-- Add New Note Button -->
+  <button id="add-note-btn">➕</button>
+
+  <!-- Template Selector Modal -->
+  <div id="template-modal" class="hidden">
+    <h3>Select Template</h3>
+    <button onclick="selectTemplate('blank')">📄 Blank</button>
+    <button onclick="selectTemplate('gallery')">🖼️ From Gallery</button>
+    <button onclick="selectTemplate('live')">📷 Live Photo</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
