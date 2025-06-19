@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Editor - Smart Notes</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body onload="loadEditor()">
+  <h1 class="note-title">Smart Notes</h1>
+
+  <!-- A4 Page Container -->
+  <div id="note-area" class="note-area"></div>
+
+  <!-- 🧰 Toolbar -->
+  <div class="toolbar">
+    <button onclick="addText()">📝 Text</button>
+    <button onclick="startDrawing()">✏️ Draw</button>
+    <button onclick="stopDrawing()">🛑 Stop Draw</button>
+    <button onclick="addSticky()">🟨 Sticky</button>
+    <button onclick="uploadFile()">📎 Upload</button>
+    <button onclick="recordVoice()">🎤 Voice</button>
+    <button onclick="showTutorial()">🎓 Tutorial</button>
+  </div>
+
+  <!-- File Upload (hidden) -->
+  <input type="file" id="file-input" style="display:none" onchange="handleUpload(event)" />
+
+  <!-- Tutorial Modal -->
+  <div id="tutorial-modal" class="modal hidden">
+    <h3>🎓 Smart Notes Tutorial</h3>
+    <ul>
+      <li>📝 <b>Text:</b> Add draggable text blocks</li>
+      <li>✏️ <b>Draw:</b> Freehand draw with your finger/mouse</li>
+      <li>🟨 <b>Sticky:</b> Add colorful sticky notes</li>
+      <li>📎 <b>Upload:</b> Add PDFs, DOCs, or Images</li>
+      <li>🎤 <b>Voice:</b> Record short voice notes</li>
+    </ul>
+    <button onclick="hideTutorial()">Got It!</button>
+  </div>
+
+  <script src="editor.js"></script>
+</body>
+</html>
