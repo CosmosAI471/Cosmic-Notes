@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Notes</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body onload="startApp()">
+  <h1 id="animated-title" class="start-title">Smart Notes</h1>
+
+  <div id="main-content" style="display:none;">
+    <div class="make-note-tile" onclick="showTemplatePicker()">➕ Make a Note</div>
+  </div>
+
+  <!-- Template Modal -->
+  <div id="template-picker" class="hidden">
+    <h3>Select Template</h3>
+    <button onclick="createNote('blank')">📄 Blank</button>
+    <button onclick="createNote('gallery')">🖼️ Gallery</button>
+    <button onclick="createNote('live')">📷 Live</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
