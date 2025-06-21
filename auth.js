@@ -11,3 +11,4 @@ function login() {
   // You could also verify here with a backend in future
   location.href = "notes.html";
 }
+
