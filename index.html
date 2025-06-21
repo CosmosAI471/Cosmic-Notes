@@ -1,13 +1,1681 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Smart Notes</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Notes</title>
+    <!-- Tailwind CSS CDN for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Hide overflow to prevent scrollbars from canvas/draggable elements */
+        }
+
+        .container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .page {
+            display: none; /* All pages are hidden by default */
+            width: 100%;
+            height: 100%;
+            position: absolute; /* Position pages absolutely to overlay them */
+            top: 0;
+            left: 0;
+            background-color: #f0f2f5;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .page.active {
+            display: flex; /* Active page is displayed */
+        }
+
+        /* Landing Page Specific Styles */
+        #landing-page {
+            background: linear-gradient(135deg, #a8dadc, #457b9d); /* Blue-green gradient */
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        #landing-page h1 {
+            font-size: 3.5rem; /* Larger heading */
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        #landing-page p {
+            font-size: 1.25rem;
+            max-width: 600px;
+            margin: 0 auto 40px auto;
+            line-height: 1.6;
+        }
+
+        /* Auth Page Specific Styles */
+        #auth-page {
+            background-color: #e0f2f7; /* Lighter blue */
+        }
+        #auth-form input {
+            padding: 12px 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 350px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        }
+        #auth-form button {
+            width: 100%;
+            max-width: 350px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Dashboard Page Specific Styles */
+        #dashboard-page {
+            background-color: #f0f2f5;
+        }
+        .smart-notes-title {
+            font-size: 4rem; /* Initial large size */
+            font-weight: 800;
+            color: #2c3e50;
+            animation: title-pop-up 1.5s forwards ease-out; /* Animation applied */
+            margin-bottom: 50px;
+        }
+
+        @keyframes title-pop-up {
+            0% {
+                font-size: 6rem;
+                opacity: 0;
+                transform: scale(0.5);
+                text-shadow: 0 0 0 rgba(0,0,0,0);
+            }
+            70% {
+                opacity: 1;
+                transform: scale(1.05);
+                text-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            }
+            100% {
+                font-size: 4rem; /* Target size */
+                opacity: 1;
+                transform: scale(1) translateY(-10vh); /* Move to top-center */
+                text-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            }
+        }
+
+        .dashboard-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            padding-top: 10vh; /* Account for title animation */
+            box-sizing: border-box;
+        }
+
+        .note-tile {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            width: 90%;
+            max-width: 300px;
+            height: 180px; /* Fixed height for tiles */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 15px; /* Spacing between tiles */
+            font-weight: 600;
+            color: #333;
+        }
+
+        .note-tile:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .note-tile i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #457b9d;
+        }
+
+        .notes-list-container {
+            width: 100%;
+            max-width: 900px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            max-height: 400px; /* Limit height for scrollability */
+            overflow-y: auto; /* Enable vertical scrolling */
+            margin-top: 20px;
+        }
+
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive grid */
+            gap: 20px;
+            padding: 10px;
+        }
+
+        .notes-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #e6f7ff; /* Light blue background for items */
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: background-color 0.2s ease;
+        }
+
+        .notes-list-item:hover {
+            background-color: #d1efff; /* Lighter blue on hover */
+        }
+
+        .notes-list-item span {
+            font-weight: 500;
+            color: #333;
+            flex-grow: 1; /* Allow text to take space */
+            cursor: pointer;
+        }
+
+        .notes-list-item button {
+            background: none;
+            border: none;
+            color: #ef4444; /* Red for delete */
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .notes-list-item button:hover {
+            color: #dc2626;
+            background-color: #fee2e2;
+        }
+
+
+        /* Note Editor Page Specific Styles */
+        #note-editor-page {
+            background-color: #ffffff; /* White background for editor */
+            padding: 20px;
+            box-sizing: border-box;
+            flex-direction: column;
+            justify-content: flex-start; /* Align content to start */
+            align-items: center;
+            position: relative; /* Needed for absolute positioning of tools */
+        }
+
+        .editor-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 15px;
+        }
+        .editor-header h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            gap: 10px;
+            background-color: #f8f8f8;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+            justify-content: center;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .toolbar button, .toolbar input[type="color"], .toolbar label {
+            background-color: #e0f2f7; /* Light blue button */
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #457b9d;
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toolbar button:hover, .toolbar input[type="color"]:hover, .toolbar label:hover {
+            background-color: #b3e0ed;
+            transform: translateY(-2px);
+        }
+
+        .toolbar button i {
+            margin-right: 8px;
+        }
+
+        .toolbar input[type="color"] {
+            padding: 5px; /* Adjust padding for color input */
+            width: 40px; /* Adjust width */
+            height: 40px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+        }
+
+        #noteCanvas {
+            border: 1px solid #e0e0e0;
+            background-color: #ffffff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            cursor: crosshair; /* Indicate drawing mode */
+            max-width: 100%; /* Ensure canvas is responsive */
+            height: auto; /* Maintain aspect ratio */
+        }
+
+        /* Container for canvas and overlays */
+        .canvas-container {
+            position: relative;
+            width: 90%; /* Max width for the A4/A3 like page */
+            max-width: 800px; /* A4 width approx */
+            aspect-ratio: 210 / 297; /* A4 aspect ratio */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border-radius: 8px;
+            overflow: hidden; /* Hide anything outside canvas */
+        }
+
+        #noteCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .overlay-elements {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Allows clicks to pass through to canvas unless on an overlay element */
+        }
+
+        .overlay-element {
+            position: absolute;
+            pointer-events: auto; /* Make overlay elements clickable/draggable */
+            resize: both; /* Allow resizing */
+            overflow: auto; /* Scroll if content overflows */
+            padding: 8px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: grab; /* Indicate draggable */
+            display: flex; /* For centering text in sticky notes */
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: #333;
+            border: 1px dashed #ccc; /* Border for editability */
+        }
+
+        .overlay-element:focus-within {
+            outline: 2px dashed #457b9d; /* Highlight when active */
+        }
+
+        .sticky-note {
+            background-color: #fffbe6; /* Default sticky color */
+            border: 1px solid #fce07b;
+            cursor: grab;
+            min-width: 100px;
+            min-height: 100px;
+            width: 150px; /* Default size */
+            height: 150px;
+        }
+
+        .sticky-note[contenteditable="true"] {
+            cursor: text;
+        }
+
+        .text-box {
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid #d1d1d1;
+            cursor: grab;
+            min-width: 100px;
+            min-height: 40px;
+            width: 200px; /* Default size */
+            height: auto;
+            text-align: left;
+        }
+
+        .text-box[contenteditable="true"] {
+            cursor: text;
+        }
+
+        /* Tutorial Overlay */
+        #tutorial-overlay {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            display: none; /* Hidden by default */
+            z-index: 1000; /* Above other elements */
+            max-width: 250px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        #tutorial-overlay.active {
+            display: block;
+        }
+
+        /* Message box for alerts */
+        .message-box-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            visibility: hidden; /* Hidden by default */
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s ease;
+        }
+
+        .message-box-container.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .message-box {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .message-box-container.active .message-box {
+            transform: translateY(0);
+        }
+
+        .message-box h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .message-box p {
+            margin-bottom: 25px;
+            color: #666;
+        }
+
+        .message-box button {
+            background-color: #457b9d;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .message-box button:hover {
+            background-color: #1d3557;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            #landing-page h1 {
+                font-size: 2.5rem;
+            }
+            #landing-page p {
+                font-size: 1rem;
+            }
+            .smart-notes-title {
+                font-size: 3rem;
+            }
+            @keyframes title-pop-up {
+                0% { font-size: 4rem; }
+                70% { font-size: 3.2rem; }
+                100% { font-size: 3rem; transform: scale(1) translateY(-10vh); }
+            }
+            .note-tile {
+                width: 100%;
+                margin: 10px 0;
+            }
+            .toolbar {
+                flex-direction: row;
+                gap: 8px;
+                padding: 8px;
+                overflow-x: auto; /* Allow horizontal scrolling on small screens */
+                justify-content: flex-start; /* Align tools to start */
+            }
+            .toolbar button, .toolbar label {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+                white-space: nowrap; /* Prevent wrapping text within buttons */
+            }
+            .canvas-container {
+                width: 95%; /* Adjust canvas container width */
+                aspect-ratio: 210 / 297; /* A4 aspect ratio */
+                height: auto;
+            }
+        }
+    </style>
 </head>
-<body class="center-screen">
-  <h1 class="app-title">📒 Smart Notes</h1>
-  <p>Welcome to Smart Notes — the smartest way to create notes with voice, drawing, images, shapes, and more!</p>
-  <button onclick="location.href='login.html'">Let's Start Making Notes</button>
+<body>
+    <!-- Message Box HTML -->
+    <div id="messageBoxContainer" class="message-box-container">
+        <div class="message-box">
+            <h3 id="messageBoxTitle"></h3>
+            <p id="messageBoxText"></p>
+            <button id="messageBoxClose">OK</button>
+        </div>
+    </div>
+
+    <!-- Landing Page -->
+    <div id="landing-page" class="page active">
+        <div class="container">
+            <h1 class="text-white text-5xl font-extrabold mb-4 animate-fade-in-down">Smart Notes</h1>
+            <p class="text-lg text-gray-100 mb-8 max-w-2xl">
+                Your ultimate digital notebook for capturing ideas, sketching thoughts, and organizing your life with ease.
+                Experience seamless note-taking with text, drawings, photos, and more!
+            </p>
+            <button id="start-notes-btn" class="bg-white text-blue-800 px-8 py-4 rounded-full text-xl font-bold shadow-lg hover:bg-gray-100 hover:scale-105 transform transition duration-300">
+                Let's Start Making Notes
+            </button>
+        </div>
+    </div>
+
+    <!-- Authentication Page -->
+    <div id="auth-page" class="page">
+        <div class="container flex flex-col items-center justify-center">
+            <h2 class="text-4xl font-bold text-gray-800 mb-8">Join Smart Notes</h2>
+            <form id="auth-form" class="flex flex-col items-center w-full max-w-md bg-white p-8 rounded-xl shadow-lg">
+                <input type="email" id="auth-email" placeholder="Email" required class="mb-4 p-3 rounded-lg border border-gray-300 w-full">
+                <input type="password" id="auth-password" placeholder="Password" required class="mb-6 p-3 rounded-lg border border-gray-300 w-full">
+                <button type="submit" id="auth-submit-btn" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:bg-blue-700 w-full transition duration-200">
+                    Sign In / Sign Up
+                </button>
+                <p class="text-gray-600 mt-4 text-sm">
+                    Don't worry, if you don't have an account, one will be created for you!
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div id="dashboard-page" class="page">
+        <div class="dashboard-content">
+            <h2 id="smart-notes-dashboard-title" class="smart-notes-title">Smart Notes</h2>
+            <div class="flex flex-wrap justify-center items-center w-full max-w-4xl mt-10">
+                <div id="create-note-tile" class="note-tile">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Make a New Note</span>
+                </div>
+            </div>
+
+            <div class="notes-list-container">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Your Saved Notes</h3>
+                <div id="saved-notes-list" class="notes-grid">
+                    <!-- Saved notes will be loaded here -->
+                    <p class="text-gray-500 text-center col-span-full">No notes saved yet. Click "Make a New Note" to start!</p>
+                </div>
+            </div>
+
+            <button id="logout-btn" class="mt-8 bg-red-500 text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:bg-red-600 transition duration-200">
+                Logout
+            </button>
+        </div>
+    </div>
+
+    <!-- Note Editor Page -->
+    <div id="note-editor-page" class="page">
+        <div class="editor-header">
+            <button id="back-to-dashboard-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition duration-200">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <h2 id="note-title-display">New Note</h2>
+            <button id="save-note-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200">
+                <i class="fas fa-save"></i> Save Note
+            </button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <button id="text-tool-btn" data-tutorial="Click to add a text box. You can type, move, and resize it.">
+                <i class="fas fa-font"></i> Text
+            </button>
+            <button id="draw-tool-btn" data-tutorial="Select this to draw freehand on the page.">
+                <i class="fas fa-pencil-alt"></i> Draw
+            </button>
+            <input type="color" id="color-picker" value="#000000" data-tutorial="Choose your ink color for drawing and shapes.">
+            <button id="line-tool-btn" data-tutorial="Draw straight lines. Click and drag to create.">
+                <i class="fas fa-slash"></i> Line
+            </button>
+            <button id="sticky-note-tool-btn" data-tutorial="Add a colorful sticky note. Drag, resize, and type on it.">
+                <i class="fas fa-sticky-note"></i> Sticky Note
+            </button>
+            <input type="color" id="sticky-color-picker" value="#ffe082" data-tutorial="Pick a background color for your sticky notes.">
+            <button id="clear-canvas-btn" class="bg-red-200 text-red-700 hover:bg-red-300" data-tutorial="Clear all drawings and elements from the current page.">
+                <i class="fas fa-eraser"></i> Clear All
+            </button>
+            <label for="gallery-upload" class="toolbar-item" data-tutorial="Upload an image from your device to use as a background.">
+                <i class="fas fa-image"></i> Gallery
+                <input type="file" id="gallery-upload" accept="image/*, application/pdf" class="hidden">
+            </label>
+            <button id="live-photo-btn" data-tutorial="Use your webcam to take a live photo and make notes on it.">
+                <i class="fas fa-camera"></i> Live Photo
+            </button>
+            <button id="voice-note-btn" class="bg-purple-200 text-purple-700 hover:bg-purple-300" data-tutorial="Future feature: Record voice notes directly onto your page!">
+                <i class="fas fa-microphone"></i> Voice Note
+            </button>
+            <button id="tutorial-toggle-btn" class="bg-indigo-200 text-indigo-700 hover:bg-indigo-300" data-tutorial="Toggle this to see helpful tips about each tool.">
+                <i class="fas fa-question-circle"></i> Tutorial
+            </button>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="noteCanvas"></canvas>
+            <div id="overlayElements" class="overlay-elements">
+                <!-- Text boxes and sticky notes will be added here -->
+            </div>
+            <video id="webcam-preview" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit: cover;"></video>
+        </div>
+
+        <!-- Tutorial Overlay -->
+        <div id="tutorial-overlay">
+            <p id="tutorial-text"></p>
+        </div>
+    </div>
+
+
+    <script type="module">
+        // Firebase CDN Imports - Essential for authentication and database
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import {
+            getAuth,
+            signInAnonymously,
+            signInWithCustomToken,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            onAuthStateChanged,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import {
+            getFirestore,
+            doc,
+            setDoc,
+            getDoc,
+            collection,
+            addDoc,
+            onSnapshot,
+            deleteDoc,
+            query,
+            where,
+            getDocs
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- GLOBAL VARIABLES & FIREBASE SETUP ---
+        // These global variables are provided by the Canvas environment.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app;
+        let auth;
+        let db;
+        let userId = null; // Stores the current user's ID
+        let userNotesCollection; // Firestore collection reference for user's notes
+
+        let currentNoteId = null; // ID of the note currently being edited
+        let currentNoteData = { // Data structure for the current note
+            drawings: [],
+            textboxes: [],
+            stickynotes: [],
+            background: null, // Stores base64 image or null
+            title: "Untitled Note"
+        };
+
+        // --- UI ELEMENT REFERENCES ---
+        const landingPage = document.getElementById('landing-page');
+        const authPage = document.getElementById('auth-page');
+        const dashboardPage = document.getElementById('dashboard-page');
+        const noteEditorPage = document.getElementById('note-editor-page');
+
+        const startNotesBtn = document.getElementById('start-notes-btn');
+        const authForm = document.getElementById('auth-form');
+        const authEmail = document.getElementById('auth-email');
+        const authPassword = document.getElementById('auth-password');
+        const logoutBtn = document.getElementById('logout-btn');
+        const createNoteTile = document.getElementById('create-note-tile');
+        const savedNotesList = document.getElementById('saved-notes-list');
+        const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+        const saveNoteBtn = document.getElementById('save-note-btn');
+        const noteTitleDisplay = document.getElementById('note-title-display');
+
+        // Canvas related elements
+        const noteCanvas = document.getElementById('noteCanvas');
+        const ctx = noteCanvas.getContext('2d');
+        const overlayElementsContainer = document.getElementById('overlayElements');
+        const webcamPreview = document.getElementById('webcam-preview');
+
+        // Toolbar buttons
+        const textToolBtn = document.getElementById('text-tool-btn');
+        const drawToolBtn = document.getElementById('draw-tool-btn');
+        const colorPicker = document.getElementById('color-picker');
+        const lineToolBtn = document.getElementById('line-tool-btn');
+        const stickyNoteToolBtn = document.getElementById('sticky-note-tool-btn');
+        const stickyColorPicker = document.getElementById('sticky-color-picker');
+        const clearCanvasBtn = document.getElementById('clear-canvas-btn');
+        const galleryUpload = document.getElementById('gallery-upload');
+        const livePhotoBtn = document.getElementById('live-photo-btn');
+        const voiceNoteBtn = document.getElementById('voice-note-btn');
+        const tutorialToggleButton = document.getElementById('tutorial-toggle-btn');
+        const tutorialOverlay = document.getElementById('tutorial-overlay');
+        const tutorialText = document.getElementById('tutorial-text');
+
+        // Message Box elements
+        const messageBoxContainer = document.getElementById('messageBoxContainer');
+        const messageBoxTitle = document.getElementById('messageBoxTitle');
+        const messageBoxText = document.getElementById('messageBoxText');
+        const messageBoxClose = document.getElementById('messageBoxClose');
+
+
+        // --- CANVAS & DRAWING STATE ---
+        let isDrawing = false;
+        let isMovingElement = false;
+        let activeTool = 'draw'; // Default tool: 'draw', 'text', 'line', 'sticky'
+        let currentColor = '#000000';
+        let currentStickyColor = '#ffe082';
+        let lineStart = { x: 0, y: 0 };
+        let points = []; // Stores points for freehand drawing
+        let selectedElement = null; // Currently selected draggable/resizable element (text box, sticky note)
+        let offsetX, offsetY; // For dragging elements
+
+        // --- TUTORIAL STATE ---
+        let tutorialEnabled = false;
+
+        // --- UTILITY FUNCTIONS ---
+
+        // Custom message box instead of alert()
+        function showMessageBox(title, message) {
+            messageBoxTitle.textContent = title;
+            messageBoxText.textContent = message;
+            messageBoxContainer.classList.add('active');
+        }
+
+        messageBoxClose.addEventListener('click', () => {
+            messageBoxContainer.classList.remove('active');
+        });
+
+
+        // Function to show a specific page and hide others
+        function showPage(pageId) {
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+
+            // Specific actions when showing pages
+            if (pageId === 'dashboard-page') {
+                // Trigger animation for Smart Notes title on dashboard
+                const titleElement = document.getElementById('smart-notes-dashboard-title');
+                titleElement.style.animation = 'none'; // Reset animation
+                void titleElement.offsetWidth; // Trigger reflow
+                titleElement.style.animation = 'title-pop-up 1.5s forwards ease-out';
+                loadSavedNotes(); // Load notes when dashboard is shown
+            } else if (pageId === 'note-editor-page') {
+                // Ensure canvas size is set when editor is visible
+                resizeCanvas();
+                if (currentNoteId) {
+                    noteTitleDisplay.textContent = currentNoteData.title || "Untitled Note";
+                } else {
+                    noteTitleDisplay.textContent = "New Note";
+                }
+            } else if (pageId === 'auth-page') {
+                // Clear auth form fields
+                authEmail.value = '';
+                authPassword.value = '';
+            }
+        }
+
+        // Initialize Firebase and set up auth listener
+        async function initializeFirebase() {
+            try {
+                if (Object.keys(firebaseConfig).length === 0) {
+                    throw new Error("Firebase configuration is missing. Cannot initialize Firebase.");
+                }
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // Try to sign in with custom token if available, otherwise anonymously
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // Listen for authentication state changes
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        // Set the collection path for user-specific notes
+                        userNotesCollection = collection(db, `artifacts/${appId}/users/${userId}/notes`);
+                        console.log("Firebase initialized. User authenticated:", userId);
+                        // If coming from landing page, go to auth. If already authenticated, go to dashboard.
+                        if (landingPage.classList.contains('active')) {
+                            showPage('auth-page'); // First time, show auth page
+                        } else {
+                            showPage('dashboard-page'); // Already authenticated, go to dashboard
+                        }
+                    } else {
+                        userId = null;
+                        console.log("No user signed in.");
+                        showPage('auth-page'); // If logged out or no user, show auth page
+                    }
+                });
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+                showMessageBox("Firebase Error", "Failed to initialize Firebase. Please check your connection or try again later.");
+                showPage('landing-page'); // Fallback to landing if Firebase init fails
+            }
+        }
+
+        // --- AUTHENTICATION LOGIC ---
+
+        startNotesBtn.addEventListener('click', () => {
+            showPage('auth-page');
+        });
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = authEmail.value;
+            const password = authPassword.value;
+
+            try {
+                // Try to sign in
+                await signInWithEmailAndPassword(auth, email, password);
+                showMessageBox("Success", "Signed in successfully!");
+                showPage('dashboard-page');
+            } catch (error) {
+                // If sign-in fails, try to create a new user
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    try {
+                        await createUserWithEmailAndPassword(auth, email, password);
+                        showMessageBox("Welcome!", "Account created and signed in successfully!");
+                        showPage('dashboard-page');
+                    } catch (createError) {
+                        console.error("Error creating user:", createError);
+                        showMessageBox("Authentication Error", createError.message || "Failed to create account. Please check your email and password.");
+                    }
+                } else {
+                    console.error("Error signing in:", error);
+                    showMessageBox("Authentication Error", error.message || "An error occurred during sign-in.");
+                }
+            }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                showMessageBox("Logged Out", "You have been logged out successfully.");
+                showPage('auth-page');
+            } catch (error) {
+                console.error("Error logging out:", error);
+                showMessageBox("Logout Error", error.message || "Failed to log out.");
+            }
+        });
+
+        // --- DASHBOARD LOGIC ---
+
+        createNoteTile.addEventListener('click', () => {
+            // Reset editor for a new note
+            currentNoteId = null;
+            currentNoteData = {
+                drawings: [],
+                textboxes: [],
+                stickynotes: [],
+                background: null,
+                title: "Untitled Note"
+            };
+            clearEditorContent();
+            noteTitleDisplay.textContent = "New Note";
+            showPage('note-editor-page');
+        });
+
+        backToDashboardBtn.addEventListener('click', () => {
+            showPage('dashboard-page');
+            // Stop webcam stream if active
+            stopWebcamStream();
+        });
+
+        async function loadSavedNotes() {
+            if (!userId) {
+                savedNotesList.innerHTML = `<p class="text-gray-500 text-center col-span-full">Please sign in to see your notes.</p>`;
+                return;
+            }
+
+            savedNotesList.innerHTML = `<p class="text-gray-500 text-center col-span-full">Loading notes...</p>`;
+
+            try {
+                // Use onSnapshot for real-time updates of notes list
+                onSnapshot(userNotesCollection, (snapshot) => {
+                    savedNotesList.innerHTML = ''; // Clear existing notes
+                    if (snapshot.empty) {
+                        savedNotesList.innerHTML = `<p class="text-gray-500 text-center col-span-full">No notes saved yet. Click "Make a New Note" to start!</p>`;
+                        return;
+                    }
+
+                    snapshot.docs.forEach(doc => {
+                        const note = doc.data();
+                        const noteId = doc.id;
+                        const noteTitle = note.title || `Note ${noteId.substring(0, 5)}`;
+                        const noteElement = document.createElement('div');
+                        noteElement.className = 'note-tile group'; // Add group class for hover effects
+                        noteElement.innerHTML = `
+                            <span class="text-xl font-semibold mb-2 group-hover:text-blue-700 transition-colors">${noteTitle}</span>
+                            <span class="text-sm text-gray-500">Last updated: ${new Date(note.updatedAt?.toDate()).toLocaleString()}</span>
+                            <div class="flex mt-4">
+                                <button data-id="${noteId}" class="view-note-btn bg-blue-500 text-white px-3 py-1 rounded-md text-sm mr-2 hover:bg-blue-600 transition-colors">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                <button data-id="${noteId}" class="delete-note-btn bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 transition-colors">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </div>
+                        `;
+                        savedNotesList.appendChild(noteElement);
+                    });
+
+                    // Attach event listeners to new buttons
+                    document.querySelectorAll('.view-note-btn').forEach(button => {
+                        button.onclick = (e) => loadNoteForEditing(e.target.dataset.id);
+                    });
+                    document.querySelectorAll('.delete-note-btn').forEach(button => {
+                        button.onclick = (e) => deleteNote(e.target.dataset.id);
+                    });
+                });
+            } catch (error) {
+                console.error("Error loading notes:", error);
+                showMessageBox("Error", "Failed to load your notes. Please try again.");
+            }
+        }
+
+        async function loadNoteForEditing(noteId) {
+            try {
+                const noteDocRef = doc(db, `artifacts/${appId}/users/${userId}/notes`, noteId);
+                const noteSnapshot = await getDoc(noteDocRef);
+
+                if (noteSnapshot.exists()) {
+                    currentNoteData = noteSnapshot.data();
+                    currentNoteId = noteId;
+                    noteTitleDisplay.textContent = currentNoteData.title || "Untitled Note";
+
+                    clearEditorContent(); // Clear existing content before loading new
+
+                    // Load background image
+                    if (currentNoteData.background) {
+                        const img = new Image();
+                        img.onload = () => {
+                            ctx.clearRect(0, 0, noteCanvas.width, noteCanvas.height);
+                            ctx.drawImage(img, 0, 0, noteCanvas.width, noteCanvas.height);
+                            // After loading background, draw other elements
+                            redrawCanvas();
+                        };
+                        img.src = currentNoteData.background;
+                    } else {
+                        ctx.clearRect(0, 0, noteCanvas.width, noteCanvas.height); // Clear if no background
+                        redrawCanvas();
+                    }
+
+
+                    // Recreate text boxes
+                    currentNoteData.textboxes.forEach(box => {
+                        const textBox = createTextBox(box.id, box.x, box.y, box.width, box.height, box.content);
+                        overlayElementsContainer.appendChild(textBox);
+                        // Set innerText to prevent HTML injection if content is not pure text
+                        textBox.innerText = box.content;
+                    });
+
+                    // Recreate sticky notes
+                    currentNoteData.stickynotes.forEach(note => {
+                        const stickyNote = createStickyNote(note.id, note.x, note.y, note.width, note.height, note.content, note.color);
+                        overlayElementsContainer.appendChild(stickyNote);
+                        // Set innerText to prevent HTML injection if content is not pure text
+                        stickyNote.innerText = note.content;
+                    });
+
+                    showPage('note-editor-page');
+                } else {
+                    showMessageBox("Error", "Note not found.");
+                }
+            } catch (error) {
+                console.error("Error loading note:", error);
+                showMessageBox("Error", "Failed to load note. Please try again.");
+            }
+        }
+
+        async function deleteNote(noteId) {
+            if (!userId) {
+                showMessageBox("Error", "You must be signed in to delete notes.");
+                return;
+            }
+
+            const confirmDelete = await new Promise(resolve => {
+                showMessageBox("Confirm Delete", "Are you sure you want to delete this note? This action cannot be undone.", true); // Pass true for confirmation style
+                messageBoxClose.textContent = "Cancel"; // Change text of OK button
+                const confirmButton = document.createElement('button');
+                confirmButton.textContent = "Delete";
+                confirmButton.className = "ml-3 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg";
+                confirmButton.onclick = () => {
+                    resolve(true);
+                    messageBoxContainer.classList.remove('active');
+                    messageBoxClose.textContent = "OK"; // Reset text
+                    confirmButton.remove(); // Remove button
+                };
+                messageBoxContainer.querySelector('.message-box').appendChild(confirmButton);
+                messageBoxClose.onclick = () => { // Override default close behavior for confirmation
+                    resolve(false);
+                    messageBoxContainer.classList.remove('active');
+                    messageBoxClose.textContent = "OK"; // Reset text
+                    confirmButton.remove(); // Remove button
+                };
+            });
+
+            if (!confirmDelete) return;
+
+            try {
+                const noteDocRef = doc(db, `artifacts/${appId}/users/${userId}/notes`, noteId);
+                await deleteDoc(noteDocRef);
+                showMessageBox("Success", "Note deleted successfully!");
+                // loadSavedNotes is already reactive due to onSnapshot, so no need to call it manually.
+            } catch (error) {
+                console.error("Error deleting note:", error);
+                showMessageBox("Error", "Failed to delete note. Please try again.");
+            }
+        }
+
+        // --- NOTE EDITOR LOGIC ---
+
+        // Adjust canvas resolution for high-DPI screens and set fixed aspect ratio
+        function resizeCanvas() {
+            const container = noteCanvas.parentElement;
+            const containerWidth = container.offsetWidth;
+            const containerHeight = container.offsetHeight;
+
+            // Set canvas size to fill container while respecting aspect ratio
+            const aspectRatio = 210 / 297; // A4 aspect ratio (width / height)
+            let canvasWidth = containerWidth;
+            let canvasHeight = containerWidth / aspectRatio;
+
+            if (canvasHeight > containerHeight) {
+                canvasHeight = containerHeight;
+                canvasWidth = containerHeight * aspectRatio;
+            }
+
+            noteCanvas.style.width = `${canvasWidth}px`;
+            noteCanvas.style.height = `${canvasHeight}px`;
+
+            // Set drawing buffer size for high DPI
+            const dpi = window.devicePixelRatio || 1;
+            noteCanvas.width = canvasWidth * dpi;
+            noteCanvas.height = canvasHeight * dpi;
+            ctx.scale(dpi, dpi); // Scale context for consistent drawing regardless of DPI
+
+            // Redraw content after resize
+            redrawCanvas();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+
+        function redrawCanvas() {
+            // Redraw everything on canvas
+            ctx.clearRect(0, 0, noteCanvas.width / (window.devicePixelRatio || 1), noteCanvas.height / (window.devicePixelRatio || 1));
+
+            // Draw background if any (already handled in loadNoteForEditing, but good for clear/templates)
+            if (currentNoteData.background) {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0, noteCanvas.width / (window.devicePixelRatio || 1), noteCanvas.height / (window.devicePixelRatio || 1));
+                    drawAllDrawings(); // Draw drawings on top of background
+                };
+                img.src = currentNoteData.background;
+            } else {
+                drawAllDrawings(); // Just draw drawings if no background
+            }
+        }
+
+        function drawAllDrawings() {
+            currentNoteData.drawings.forEach(drawing => {
+                ctx.strokeStyle = drawing.color;
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                if (drawing.tool === 'draw') {
+                    if (drawing.points.length > 1) {
+                        ctx.beginPath();
+                        ctx.moveTo(drawing.points[0].x, drawing.points[0].y);
+                        for (let i = 1; i < drawing.points.length; i++) {
+                            ctx.lineTo(drawing.points[i].x, drawing.points[i].y);
+                        }
+                        ctx.stroke();
+                    }
+                } else if (drawing.tool === 'line') {
+                    ctx.beginPath();
+                    ctx.moveTo(drawing.start.x, drawing.start.y);
+                    ctx.lineTo(drawing.end.x, drawing.end.y);
+                    ctx.stroke();
+                }
+            });
+        }
+
+
+        // --- TOOLBAR FUNCTIONALITY ---
+
+        textToolBtn.addEventListener('click', () => {
+            activeTool = 'text';
+            showTutorial("Click anywhere on the canvas to add a new text box. Type directly in it.");
+            createTextBox(crypto.randomUUID(), 50, 50, 200, 40, "New Text Box");
+        });
+
+        drawToolBtn.addEventListener('click', () => {
+            activeTool = 'draw';
+            showTutorial("Drag your mouse or finger on the canvas to draw freehand.");
+        });
+
+        colorPicker.addEventListener('change', (e) => {
+            currentColor = e.target.value;
+            showTutorial(`Drawing color set to ${currentColor}.`);
+        });
+
+        lineToolBtn.addEventListener('click', () => {
+            activeTool = 'line';
+            showTutorial("Click and drag to draw straight lines. Release to finish.");
+        });
+
+        stickyNoteToolBtn.addEventListener('click', () => {
+            activeTool = 'sticky';
+            showTutorial("Click anywhere to add a new sticky note. You can drag and resize it, and change its color.");
+            createStickyNote(crypto.randomUUID(), 50, 50, 150, 150, "New Sticky Note", currentStickyColor);
+        });
+
+        stickyColorPicker.addEventListener('change', (e) => {
+            currentStickyColor = e.target.value;
+            showTutorial(`Sticky note background color set to ${currentStickyColor}.`);
+        });
+
+        clearCanvasBtn.addEventListener('click', () => {
+            // Custom confirmation
+            showMessageBox("Confirm Clear", "Are you sure you want to clear all content on this note?", true);
+            messageBoxClose.textContent = "Cancel";
+            const confirmButton = document.createElement('button');
+            confirmButton.textContent = "Clear";
+            confirmButton.className = "ml-3 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg";
+            confirmButton.onclick = () => {
+                clearEditorContent();
+                currentNoteData.background = null; // Also clear background image
+                showMessageBox("Success", "Note content cleared.");
+                messageBoxClose.textContent = "OK";
+                confirmButton.remove();
+                messageBoxContainer.classList.remove('active');
+            };
+            messageBoxContainer.querySelector('.message-box').appendChild(confirmButton);
+            messageBoxClose.onclick = () => { // Override default close for confirmation
+                messageBoxContainer.classList.remove('active');
+                messageBoxClose.textContent = "OK";
+                confirmButton.remove();
+            };
+        });
+
+        galleryUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            showTutorial("Loading image/PDF as background...");
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Resize image to fit canvas while maintaining aspect ratio
+                    const canvasAspectRatio = noteCanvas.width / noteCanvas.height;
+                    const imageAspectRatio = img.width / img.height;
+
+                    let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+
+                    if (imageAspectRatio > canvasAspectRatio) {
+                        drawWidth = noteCanvas.width / (window.devicePixelRatio || 1);
+                        drawHeight = drawWidth / imageAspectRatio;
+                        offsetY = (noteCanvas.height / (window.devicePixelRatio || 1) - drawHeight) / 2;
+                    } else {
+                        drawHeight = noteCanvas.height / (window.devicePixelRatio || 1);
+                        drawWidth = drawHeight * imageAspectRatio;
+                        offsetX = (noteCanvas.width / (window.devicePixelRatio || 1) - drawWidth) / 2;
+                    }
+
+                    // Clear canvas and draw new background
+                    ctx.clearRect(0, 0, noteCanvas.width / (window.devicePixelRatio || 1), noteCanvas.height / (window.devicePixelRatio || 1));
+                    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+
+                    // Save image as base64 for persistence
+                    currentNoteData.background = event.target.result;
+                    // Redraw previous drawings on top
+                    redrawCanvas();
+                    showMessageBox("Success", "Image loaded as background!");
+                };
+                img.onerror = () => {
+                    showMessageBox("Error", "Could not load image.");
+                };
+                img.src = event.target.result;
+            };
+
+            if (file.type.startsWith('image/')) {
+                reader.readAsDataURL(file);
+            } else if (file.type === 'application/pdf') {
+                // For PDFs, we'll try to convert the first page to an image.
+                // This requires a library like pdf.js, which is complex for a beginner app.
+                // For simplicity, we'll just show a message and not process the PDF directly.
+                // A more advanced implementation would render the PDF page by page to a canvas.
+                showMessageBox("Info", "PDF files cannot be directly edited or displayed on canvas in this version. Please convert to image first or upload an image file.");
+            } else {
+                showMessageBox("Error", "Unsupported file type. Please upload an image (JPG, PNG, GIF) or try PDF for basic handling.");
+            }
+        });
+
+        // Webcam stream related variables
+        let mediaStream = null;
+
+        livePhotoBtn.addEventListener('click', async () => {
+            showTutorial("Click on the camera icon again to take a snapshot, or click 'Clear All' to remove the live photo.");
+            if (mediaStream) {
+                // If stream is active, take photo
+                takeSnapshotFromWebcam();
+            } else {
+                // If stream not active, start it
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    webcamPreview.srcObject = mediaStream;
+                    webcamPreview.style.display = 'block';
+                    await webcamPreview.play();
+                    showMessageBox("Webcam Ready", "Webcam is active. Click 'Live Photo' again to capture a snapshot.");
+                } catch (err) {
+                    console.error("Error accessing webcam:", err);
+                    showMessageBox("Webcam Error", "Could not access webcam. Please ensure you have a camera and allow access.");
+                    webcamPreview.style.display = 'none';
+                }
+            }
+        });
+
+        function takeSnapshotFromWebcam() {
+            if (!mediaStream) {
+                showMessageBox("Error", "Webcam not active.");
+                return;
+            }
+
+            const video = webcamPreview;
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+
+            tempCanvas.width = video.videoWidth;
+            tempCanvas.height = video.videoHeight;
+            tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+
+            const imageDataURL = tempCanvas.toDataURL('image/png');
+            stopWebcamStream(); // Stop the stream after taking photo
+
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, noteCanvas.width / (window.devicePixelRatio || 1), noteCanvas.height / (window.devicePixelRatio || 1));
+                ctx.drawImage(img, 0, 0, noteCanvas.width / (window.devicePixelRatio || 1), noteCanvas.height / (window.devicePixelRatio || 1));
+                currentNoteData.background = imageDataURL; // Save snapshot as background
+                redrawCanvas();
+                showMessageBox("Snapshot Taken", "Live photo captured and set as background!");
+            };
+            img.src = imageDataURL;
+        }
+
+        function stopWebcamStream() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+                webcamPreview.srcObject = null;
+                webcamPreview.style.display = 'none';
+            }
+        }
+
+        voiceNoteBtn.addEventListener('click', () => {
+            showMessageBox("Future Feature", "Voice notes are a feature we plan to add! For now, you can use text notes.");
+            showTutorial("This button will allow you to record voice notes directly on your page in a future update!");
+        });
+
+        tutorialToggleButton.addEventListener('click', () => {
+            tutorialEnabled = !tutorialEnabled;
+            if (tutorialEnabled) {
+                tutorialOverlay.classList.add('active');
+                showTutorial("Tutorials enabled! Hover over or click tool buttons for tips.");
+            } else {
+                tutorialOverlay.classList.remove('active');
+                tutorialText.textContent = "";
+            }
+        });
+
+        // Attach tutorial hover listeners to all toolbar buttons
+        document.querySelectorAll('.toolbar button, .toolbar input[type="color"], .toolbar label').forEach(element => {
+            element.addEventListener('mouseenter', (e) => {
+                if (tutorialEnabled && e.target.dataset.tutorial) {
+                    tutorialText.textContent = e.target.dataset.tutorial;
+                    tutorialOverlay.classList.add('active');
+                }
+            });
+            element.addEventListener('mouseleave', () => {
+                if (tutorialEnabled) {
+                    tutorialText.textContent = "";
+                    tutorialOverlay.classList.remove('active');
+                }
+            });
+        });
+
+        function showTutorial(message) {
+            if (tutorialEnabled) {
+                tutorialText.textContent = message;
+                tutorialOverlay.classList.add('active');
+                // Hide after a delay
+                setTimeout(() => {
+                    if (tutorialEnabled && tutorialText.textContent === message) { // Only hide if message is still current
+                        tutorialOverlay.classList.remove('active');
+                        tutorialText.textContent = "";
+                    }
+                }, 3000);
+            }
+        }
+
+
+        // --- CANVAS DRAWING & INTERACTION ---
+
+        function getMousePos(canvas, evt) {
+            const rect = canvas.getBoundingClientRect(); // Get canvas size and position
+            const scaleX = canvas.width / rect.width; // Ratio of canvas pixels to CSS pixels
+            const scaleY = canvas.height / rect.height;
+
+            return {
+                x: (evt.clientX - rect.left) * scaleX / (window.devicePixelRatio || 1), // Adjust for DPI scaling
+                y: (evt.clientY - rect.top) * scaleY / (window.devicePixelRatio || 1)
+            };
+        }
+
+        function startDrawing(e) {
+            if (e.target !== noteCanvas && !e.target.classList.contains('overlay-element')) return; // Only draw on canvas directly
+
+            if (e.button === 2) return; // Ignore right-click
+
+            isDrawing = true;
+            const pos = getMousePos(noteCanvas, e);
+            if (activeTool === 'draw') {
+                points = [{ x: pos.x, y: pos.y }];
+                ctx.strokeStyle = currentColor;
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+            } else if (activeTool === 'line') {
+                lineStart = { x: pos.x, y: pos.y };
+                ctx.strokeStyle = currentColor;
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+            }
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const pos = getMousePos(noteCanvas, e);
+
+            if (activeTool === 'draw') {
+                points.push({ x: pos.x, y: pos.y });
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+            } else if (activeTool === 'line') {
+                redrawCanvas(); // Clear and redraw existing content
+                ctx.strokeStyle = currentColor;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(lineStart.x, lineStart.y);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+            }
+        }
+
+        function endDrawing(e) {
+            if (!isDrawing) return;
+            isDrawing = false;
+
+            if (activeTool === 'draw') {
+                if (points.length > 1) {
+                    currentNoteData.drawings.push({
+                        tool: 'draw',
+                        color: currentColor,
+                        points: points.map(p => ({ x: p.x, y: p.y })) // Store a copy of points
+                    });
+                }
+                points = []; // Reset points
+            } else if (activeTool === 'line') {
+                const pos = getMousePos(noteCanvas, e);
+                currentNoteData.drawings.push({
+                    tool: 'line',
+                    color: currentColor,
+                    start: { x: lineStart.x, y: lineStart.y },
+                    end: { x: pos.x, y: pos.y }
+                });
+                redrawCanvas(); // Final redraw including the new line
+            }
+        }
+
+        // Mouse events for drawing
+        noteCanvas.addEventListener('mousedown', startDrawing);
+        noteCanvas.addEventListener('mousemove', draw);
+        noteCanvas.addEventListener('mouseup', endDrawing);
+        noteCanvas.addEventListener('mouseout', endDrawing); // End drawing if mouse leaves canvas
+
+        // Touch events for drawing (mobile responsiveness)
+        noteCanvas.addEventListener('touchstart', (e) => {
+            // Prevent scrolling while drawing
+            if (activeTool === 'draw' || activeTool === 'line') {
+                e.preventDefault();
+            }
+            const touch = e.touches[0];
+            startDrawing({ clientX: touch.clientX, clientY: touch.clientY, target: noteCanvas });
+        });
+        noteCanvas.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            draw({ clientX: touch.clientX, clientY: touch.clientY, target: noteCanvas });
+        });
+        noteCanvas.addEventListener('touchend', endDrawing);
+
+        // --- OVERLAY ELEMENT MANAGEMENT (TEXT BOX, STICKY NOTE) ---
+
+        function createTextBox(id, x, y, width, height, content) {
+            const textBox = document.createElement('div');
+            textBox.id = `textbox-${id}`;
+            textBox.className = 'overlay-element text-box';
+            textBox.contentEditable = 'true';
+            textBox.style.left = `${x}px`;
+            textBox.style.top = `${y}px`;
+            textBox.style.width = `${width}px`;
+            textBox.style.minHeight = `${height}px`; // Use minHeight for auto-sizing
+            textBox.innerText = content || "Type here...";
+            textBox.setAttribute('data-id', id);
+
+            overlayElementsContainer.appendChild(textBox);
+            setupDraggableResizable(textBox);
+            return textBox;
+        }
+
+        function createStickyNote(id, x, y, width, height, content, color) {
+            const stickyNote = document.createElement('div');
+            stickyNote.id = `sticky-${id}`;
+            stickyNote.className = 'overlay-element sticky-note';
+            stickyNote.contentEditable = 'true';
+            stickyNote.style.left = `${x}px`;
+            stickyNote.style.top = `${y}px`;
+            stickyNote.style.width = `${width}px`;
+            stickyNote.style.height = `${height}px`;
+            stickyNote.style.backgroundColor = color || currentStickyColor;
+            stickyNote.innerText = content || "New Sticky Note";
+            stickyNote.setAttribute('data-id', id);
+
+            overlayElementsContainer.appendChild(stickyNote);
+            setupDraggableResizable(stickyNote);
+            return stickyNote;
+        }
+
+        // Draggable and Resizable Logic for overlay elements
+        function setupDraggableResizable(element) {
+            let initialX, initialY, initialWidth, initialHeight;
+            let isResizing = false;
+
+            // Mousedown / Touchstart for dragging
+            element.addEventListener('mousedown', (e) => {
+                if (activeTool === 'draw' || activeTool === 'line') return; // Don't drag if drawing tool is active
+                if (e.target !== element) return; // Only drag if clicked directly on the element
+
+                selectedElement = element;
+                isMovingElement = true;
+                offsetX = e.clientX - element.getBoundingClientRect().left;
+                offsetY = e.clientY - element.getBoundingClientRect().top;
+                element.style.cursor = 'grabbing';
+            });
+
+            element.addEventListener('touchstart', (e) => {
+                if (activeTool === 'draw' || activeTool === 'line') return;
+                if (e.target !== element) return;
+
+                selectedElement = element;
+                isMovingElement = true;
+                const touch = e.touches[0];
+                offsetX = touch.clientX - element.getBoundingClientRect().left;
+                offsetY = touch.clientY - element.getBoundingClientRect().top;
+                element.style.cursor = 'grabbing';
+            });
+
+            // Mousemove / Touchmove for dragging
+            document.addEventListener('mousemove', (e) => {
+                if (!isMovingElement || !selectedElement) return;
+                selectedElement.style.left = `${e.clientX - offsetX}px`;
+                selectedElement.style.top = `${e.clientY - offsetY}px`;
+            });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!isMovingElement || !selectedElement) return;
+                const touch = e.touches[0];
+                selectedElement.style.left = `${touch.clientX - offsetX}px`;
+                selectedElement.style.top = `${touch.clientY - offsetY}px`;
+            });
+
+            // Mouseup / Touchend for dragging
+            document.addEventListener('mouseup', () => {
+                isMovingElement = false;
+                if (selectedElement) {
+                    selectedElement.style.cursor = 'grab';
+                    selectedElement = null;
+                }
+            });
+
+            document.addEventListener('touchend', () => {
+                isMovingElement = false;
+                if (selectedElement) {
+                    selectedElement.style.cursor = 'grab';
+                    selectedElement = null;
+                }
+            });
+
+            // Resizing (handled by CSS `resize: both`, but need to capture changes for saving)
+            // A simple way to capture resize is to check periodically or on blur/save
+            // For real-time updates of dimensions in currentNoteData, it would require a ResizeObserver
+            // or more complex mousemove handling with resize handles.
+            // For now, we'll capture dimensions when saving the note.
+        }
+
+        // --- SAVE NOTE LOGIC ---
+
+        saveNoteBtn.addEventListener('click', saveCurrentNote);
+
+        async function saveCurrentNote() {
+            if (!userId) {
+                showMessageBox("Error", "You must be signed in to save notes.");
+                return;
+            }
+
+            // Capture current state of overlay elements
+            const textboxesData = [];
+            overlayElementsContainer.querySelectorAll('.text-box').forEach(box => {
+                const rect = box.getBoundingClientRect();
+                const containerRect = overlayElementsContainer.getBoundingClientRect();
+                textboxesData.push({
+                    id: box.dataset.id,
+                    x: rect.left - containerRect.left,
+                    y: rect.top - containerRect.top,
+                    width: rect.width,
+                    height: rect.height,
+                    content: box.innerText
+                });
+            });
+
+            const stickyNotesData = [];
+            overlayElementsContainer.querySelectorAll('.sticky-note').forEach(note => {
+                const rect = note.getBoundingClientRect();
+                const containerRect = overlayElementsContainer.getBoundingClientRect();
+                stickyNotesData.push({
+                    id: note.dataset.id,
+                    x: rect.left - containerRect.left,
+                    y: rect.top - containerRect.top,
+                    width: rect.width,
+                    height: rect.height,
+                    content: note.innerText,
+                    color: note.style.backgroundColor
+                });
+            });
+
+            // Update currentNoteData with latest states
+            currentNoteData.textboxes = textboxesData;
+            currentNoteData.stickynotes = stickyNotesData;
+            currentNoteData.updatedAt = new Date(); // Update timestamp
+
+            if (!currentNoteData.title || currentNoteData.title === "New Note" || currentNoteData.title === "Untitled Note") {
+                 // Prompt for title if it's default
+                const titlePrompt = await new Promise(resolve => {
+                    showMessageBox("Enter Note Title", "Please give your note a title:", true, true); // true for prompt, true for input
+                    messageBoxClose.textContent = "Cancel";
+                    const input = document.createElement('input');
+                    input.type = "text";
+                    input.placeholder = "My Awesome Note";
+                    input.value = currentNoteData.title === "New Note" || currentNoteData.title === "Untitled Note" ? "" : currentNoteData.title;
+                    input.className = "p-2 border rounded-md w-full mb-3";
+                    messageBoxContainer.querySelector('.message-box').insertBefore(input, messageBoxClose.nextSibling); // Insert before close button
+
+                    const confirmButton = document.createElement('button');
+                    confirmButton.textContent = "Save";
+                    confirmButton.className = "ml-3 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg";
+                    confirmButton.onclick = () => {
+                        resolve(input.value.trim());
+                        messageBoxContainer.classList.remove('active');
+                        input.remove();
+                        confirmButton.remove();
+                        messageBoxClose.textContent = "OK";
+                        messageBoxClose.onclick = () => messageBoxContainer.classList.remove('active'); // Reset handler
+                    };
+                    messageBoxContainer.querySelector('.message-box').appendChild(confirmButton);
+                    messageBoxClose.onclick = () => { // Override default close for prompt
+                        resolve(null); // User cancelled
+                        messageBoxContainer.classList.remove('active');
+                        input.remove();
+                        confirmButton.remove();
+                        messageBoxClose.textContent = "OK";
+                        messageBoxClose.onclick = () => messageBoxContainer.classList.remove('active'); // Reset handler
+                    };
+                });
+
+                if (titlePrompt === null) { // User cancelled the title prompt
+                    showMessageBox("Save Cancelled", "Note save cancelled by user.");
+                    return;
+                }
+                currentNoteData.title = titlePrompt || "Untitled Note"; // Use provided title or default
+                noteTitleDisplay.textContent = currentNoteData.title;
+            }
+
+
+            try {
+                if (currentNoteId) {
+                    // Update existing note
+                    const noteDocRef = doc(db, `artifacts/${appId}/users/${userId}/notes`, currentNoteId);
+                    await setDoc(noteDocRef, currentNoteData, { merge: true }); // Merge to update specific fields
+                    showMessageBox("Success", `Note "${currentNoteData.title}" updated!`);
+                } else {
+                    // Create new note
+                    currentNoteData.createdAt = new Date();
+                    const docRef = await addDoc(userNotesCollection, currentNoteData);
+                    currentNoteId = docRef.id; // Store the new note's ID
+                    showMessageBox("Success", `Note "${currentNoteData.title}" created!`);
+                }
+            } catch (error) {
+                console.error("Error saving note:", error);
+                showMessageBox("Error", "Failed to save note. Please try again.");
+            }
+        }
+
+
+        function clearEditorContent() {
+            // Clear canvas
+            ctx.clearRect(0, 0, noteCanvas.width / (window.devicePixelRatio || 1), noteCanvas.height / (window.devicePixelRatio || 1));
+            // Clear overlay elements
+            overlayElementsContainer.innerHTML = '';
+            // Reset current note data
+            currentNoteData = {
+                drawings: [],
+                textboxes: [],
+                stickynotes: [],
+                background: null,
+                title: "Untitled Note"
+            };
+            currentNoteId = null; // No current note selected
+            noteTitleDisplay.textContent = "New Note"; // Reset title display
+            stopWebcamStream(); // Stop webcam if active
+        }
+
+
+        // --- INITIALIZATION ---
+        window.onload = function () {
+            initializeFirebase(); // Start Firebase init when window loads
+            resizeCanvas(); // Set initial canvas size
+        };
+
+    </script>
 </body>
 </html>
