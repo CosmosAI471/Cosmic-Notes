@@ -662,10 +662,15 @@
 
         // --- GLOBAL VARIABLES & FIREBASE SETUP ---
         // These global variables are provided by the Canvas environment.
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
+        const firebaseConfig = {
+            apiKey: "AIzaSyDR85NoIVRDPAvdjpXfT3IwG6_IAIEhUto",
+            authDomain: "cosmic-notes-f2421.firebaseapp.com",
+            projectId: "cosmic-notes-f2421",
+            storageBucket: "cosmic-notes-f2421.firebasestorage.app",
+            messagingSenderId: "184603046419",
+            appId: "1:184603046419:web:326cfc8703af414cc145e6",
+            measurementId: "G-K851SLDEPM"
+        };
         let app;
         let auth;
         let db;
@@ -805,7 +810,7 @@
                     if (user) {
                         userId = user.uid;
                         // Set the collection path for user-specific notes
-                        userNotesCollection = collection(db, `artifacts/${appId}/users/${userId}/notes`);
+                        userNotesCollection = collection(db, `artifacts/${firebaseConfig.appId}/users/${userId}/notes`);
                         console.log("Firebase initialized. User authenticated:", userId);
                         // If coming from landing page, go to auth. If already authenticated, go to dashboard.
                         if (landingPage.classList.contains('active')) {
