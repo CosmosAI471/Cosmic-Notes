@@ -13,14 +13,18 @@
 
   <!-- 🧰 Toolbar -->
   <div class="toolbar">
-    <button onclick="addText()">📝 Text</button>
-    <button onclick="startDrawing()">✏️ Draw</button>
-    <button onclick="stopDrawing()">🛑 Stop Draw</button>
-    <button onclick="addSticky()">🟨 Sticky</button>
-    <button onclick="uploadFile()">📎 Upload</button>
-    <button onclick="recordVoice()">🎤 Voice</button>
-    <button onclick="showTutorial()">🎓 Tutorial</button>
-  </div>
+  <button onclick="addText()">📝 Text</button>
+  <button onclick="startDrawing()">✏️ Draw</button>
+  <button onclick="stopDrawing()">🛑 Stop Draw</button>
+  <button onclick="addSticky()">🟨 Sticky</button>
+  <button onclick="uploadFile()">📎 Upload</button>
+  <button onclick="recordVoice()">🎤 Voice</button>
+  <button onclick="addPage()">📄 Add Page</button>
+  <button onclick="saveNotes()">💾 Save</button>
+  <button onclick="loadNotes()">📂 Load</button>
+  <button onclick="showTutorial()">🎓 Tutorial</button>
+</div>
+
 
   <!-- File Upload (hidden) -->
   <input type="file" id="file-input" style="display:none" onchange="handleUpload(event)" />
