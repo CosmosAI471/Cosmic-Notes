@@ -1,42 +1,43 @@
 let drawing = false;
-let currentCanvas, ctx;
+let ctx = null;
+let currentCanvas = null;
 
 function loadEditor() {
   const noteType = localStorage.getItem("note_type") || "blank";
+  createNewPage(noteType);
+}
 
-  const area = document.getElementById("note-area");
+function createNewPage(template) {
+  const noteArea = document.getElementById("note-area");
 
-  // Create an A4 size page
   const page = document.createElement("div");
   page.className = "a4-page";
 
-  if (noteType === "blank") {
-    page.innerHTML = ''; // nothing
-  } else if (noteType === "gallery") {
+  page.dataset.pageId = "page_" + Date.now(); // unique ID for page
+  noteArea.appendChild(page);
+
+  if (template === "gallery") {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
     input.onchange = e => {
       const img = document.createElement("img");
       img.src = URL.createObjectURL(e.target.files[0]);
-      img.style.width = "100%";
+      img.className = "resizable";
+      makeResizable(img);
       page.appendChild(img);
     };
     input.click();
-  } else if (noteType === "live") {
-    alert("📸 Open your camera in the mobile browser and upload manually (camera APIs vary by browser)");
   }
-
-  area.appendChild(page);
 }
 
 function addText() {
-  const text = document.createElement("div");
-  text.contentEditable = true;
-  text.innerText = "Type here...";
-  text.className = "draggable";
-  makeDraggable(text);
-  document.querySelector(".a4-page").appendChild(text);
+  const div = document.createElement("div");
+  div.contentEditable = true;
+  div.innerText = "Type here...";
+  div.className = "draggable editable-box";
+  makeDraggable(div);
+  document.querySelector(".a4-page:last-child").appendChild(div);
 }
 
 function startDrawing() {
@@ -46,24 +47,23 @@ function startDrawing() {
   currentCanvas.className = "draw-canvas";
   ctx = currentCanvas.getContext("2d");
 
-  currentCanvas.addEventListener("mousedown", () => drawing = true);
-  currentCanvas.addEventListener("mouseup", () => drawing = false);
-  currentCanvas.addEventListener("mousemove", draw);
+  currentCanvas.onmousedown = () => drawing = true;
+  currentCanvas.onmouseup = () => drawing = false;
+  currentCanvas.onmousemove = e => {
+    if (!drawing) return;
+    const rect = currentCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
 
-  document.querySelector(".a4-page").appendChild(currentCanvas);
+  document.querySelector(".a4-page:last-child").appendChild(currentCanvas);
 }
 
 function stopDrawing() {
   drawing = false;
-}
-
-function draw(e) {
-  if (!drawing) return;
-  const rect = currentCanvas.getBoundingClientRect();
-  ctx.fillStyle = "black";
-  ctx.beginPath();
-  ctx.arc(e.clientX - rect.left, e.clientY - rect.top, 2, 0, Math.PI * 2);
-  ctx.fill();
+  if (ctx) ctx.beginPath(); // reset path
 }
 
 function addSticky() {
@@ -71,13 +71,13 @@ function addSticky() {
   const color = colors[Math.floor(Math.random() * colors.length)];
 
   const note = document.createElement("div");
-  note.className = "sticky";
+  note.className = "draggable sticky editable-box";
   note.contentEditable = true;
   note.style.background = color;
   note.innerText = "Sticky Note";
 
   makeDraggable(note);
-  document.querySelector(".a4-page").appendChild(note);
+  document.querySelector(".a4-page:last-child").appendChild(note);
 }
 
 function uploadFile() {
@@ -86,23 +86,25 @@ function uploadFile() {
 
 function handleUpload(event) {
   const file = event.target.files[0];
+  const page = document.querySelector(".a4-page:last-child");
+
   if (file.type.startsWith("image/")) {
     const img = document.createElement("img");
     img.src = URL.createObjectURL(file);
-    img.style.width = "100%";
-    document.querySelector(".a4-page").appendChild(img);
+    img.className = "resizable";
+    makeResizable(img);
+    page.appendChild(img);
   } else {
-    const div = document.createElement("div");
-    div.innerText = "📁 " + file.name;
-    div.className = "file-box";
-    makeDraggable(div);
-    document.querySelector(".a4-page").appendChild(div);
+    const fileBox = document.createElement("div");
+    fileBox.className = "draggable file-box";
+    fileBox.innerText = `📁 ${file.name}`;
+    makeDraggable(fileBox);
+    page.appendChild(fileBox);
   }
 }
 
 function recordVoice() {
-  alert("🎤 Voice recording is browser-limited. Use a mobile browser to try.");
-  // We'll add this with `MediaRecorder` API later if you want
+  alert("🎤 Voice recording feature coming soon!");
 }
 
 function showTutorial() {
@@ -114,7 +116,6 @@ function hideTutorial() {
 }
 
 function makeDraggable(el) {
-  el.style.position = "absolute";
   el.onmousedown = function (e) {
     e.preventDefault();
     let shiftX = e.clientX - el.getBoundingClientRect().left;
@@ -123,6 +124,7 @@ function makeDraggable(el) {
     function moveAt(pageX, pageY) {
       el.style.left = pageX - shiftX + 'px';
       el.style.top = pageY - shiftY + 'px';
+      el.style.position = 'absolute';
     }
 
     function onMouseMove(e) {
@@ -132,8 +134,57 @@ function makeDraggable(el) {
     document.addEventListener('mousemove', onMouseMove);
     el.onmouseup = function () {
       document.removeEventListener('mousemove', onMouseMove);
-      el.onmouseup = null;
     };
   };
 }
 
+function makeResizable(el) {
+  el.style.resize = "both";
+  el.style.overflow = "auto";
+  el.style.maxWidth = "100%";
+}
+
+function addPage() {
+  createNewPage("blank");
+}
+
+function saveNotes() {
+  const pages = document.querySelectorAll(".a4-page");
+  const saved = [];
+
+  pages.forEach(page => {
+    let pageData = {
+      html: page.innerHTML,
+      id: page.dataset.pageId
+    };
+    saved.push(pageData);
+  });
+
+  localStorage.setItem("saved_notes", JSON.stringify(saved));
+  alert("✅ Notes saved!");
+}
+
+function loadNotes() {
+  const saved = JSON.parse(localStorage.getItem("saved_notes") || "[]");
+
+  if (saved.length === 0) {
+    alert("❌ No saved notes found.");
+    return;
+  }
+
+  document.getElementById("note-area").innerHTML = "";
+  saved.forEach(pageData => {
+    const page = document.createElement("div");
+    page.className = "a4-page";
+    page.dataset.pageId = pageData.id;
+    page.innerHTML = pageData.html;
+
+    // re-apply behavior
+    page.querySelectorAll(".draggable").forEach(el => makeDraggable(el));
+    page.querySelectorAll(".resizable").forEach(el => makeResizable(el));
+
+    document.getElementById("note-area").appendChild(page);
+  });
+
+  alert("✅ Notes loaded!");
+}
