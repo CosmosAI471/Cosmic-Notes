@@ -810,7 +810,7 @@
                     if (user) {
                         userId = user.uid;
                         // Set the collection path for user-specific notes
-                        userNotesCollection = collection(db, `artifacts/${firebaseConfig.appId}/users/${userId}/notes`);
+                        userNotesCollection = collection(db, `artifacts/<span class="math-inline">\{firebaseConfig\.appId\}/users/</span>{userId}/notes`);
                         console.log("Firebase initialized. User authenticated:", userId);
                         // If coming from landing page, go to auth. If already authenticated, go to dashboard.
                         if (landingPage.classList.contains('active')) {
